@@ -1,6 +1,22 @@
 Changelog
 =========
 
+3.12.0 (2021-05-05)
+-------------------------------
+
+* Updated dependencies which removes support for python 3.5 and python 2
+* Added support for Divio zones
+* Add support for branches of environments on project setup
+* Added better DB error handling.
+* Resolved YAML deprecation warning
+
+3.11.0 (2021-03-17)
+-------------------------------
+
+* Corrected spelling error in help text
+* Fix issue database issue during project setup
+
+
 3.10.0 (2021-01-15)
 -------------------
 
@@ -27,7 +43,7 @@ Changelog
 ------------------
 
 * renamed `.aldryn` file in a project to `.divio/conifg.json`
-* renamed global configuration file as well. 
+* renamed global configuration file as well.
 * made `docker-compose.yml` files optional
 * added command to recreated `.divio/config.json`
 * renamed interal environment variable from `ALDRYN_HOST` to `DIVIO_HOST`

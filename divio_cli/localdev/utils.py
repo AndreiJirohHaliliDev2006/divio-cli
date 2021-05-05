@@ -133,7 +133,7 @@ def ensure_windows_docker_compose_file_exists(path):
         sys.exit(1)
 
     with open(unix_path, "r") as fh:
-        conf = yaml.load(fh)
+        conf = yaml.load(fh, Loader=yaml.SafeLoader)
 
     for component, sections in conf.items():
         if "volumes" not in sections:
@@ -215,7 +215,9 @@ def start_database_server(docker_compose, prefix):
 class DockerComposeConfig(object):
     def __init__(self, docker_compose):
         super(DockerComposeConfig, self).__init__()
-        self.config = yaml.load(check_output(docker_compose("config")))
+        self.config = yaml.load(
+            check_output(docker_compose("config")), Loader=yaml.SafeLoader
+        )
 
     def get_services(self):
         return self.config.get("services", {})
@@ -322,7 +324,14 @@ def get_db_type(prefix, path=None):
             sys.exit(1)
         docker_compose_config = DockerComposeConfig(docker_compose)
         if not docker_compose_config.has_service("db"):
-            click.secho('No service "db" found in local project', fg="red")
+            click.secho(
+                "The local database container must be called "
+                "`database_default`, must define the `SERVICE_MANAGER` "
+                "environment variable and must mount the project directory "
+                "from the host to the /app directory of the container."
+                "\n\nSee https://docs.divio.com/en/latest/reference/docker-docker-compose/#database-default",
+                fg="red",
+            )
             sys.exit(1)
         else:
             # Fall back to database for legacy docker-compose files

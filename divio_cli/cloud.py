@@ -12,27 +12,38 @@ from tzlocal import get_localzone
 
 from . import api_requests, messages, settings
 from .config import Config
+from .localdev.utils import get_project_home, get_project_settings
 from .utils import json_dumps_unicode
 
 
-ENDPOINT = "https://control.{host}"
-DEFAULT_HOST = "divio.com"
+ENDPOINT = "https://control.{zone}"
+DEFAULT_ZONE = "divio.com"
 
 
-def get_divio_host():
-    return os.environ.get("DIVIO_HOST", DEFAULT_HOST)  # FIXME: Rename
-
-
-def get_endpoint(host=None):
-    if not host:
-        host = get_divio_host()
-    if re.match("^https?://", host):
-        endpoint = host
+def get_divio_zone():
+    try:
+        project_specific_zone = get_project_settings(get_project_home()).get(
+            "zone", None
+        )
+    except click.ClickException:
+        # Happens when there is no configuration file
+        pass
     else:
-        endpoint = ENDPOINT.format(host=host)
+        if project_specific_zone:
+            return project_specific_zone
+    return os.environ.get("DIVIO_ZONE", DEFAULT_ZONE)
 
-    if host != DEFAULT_HOST:
-        click.secho("Using custom endpoint {}\n".format(endpoint), fg="yellow")
+
+def get_endpoint(zone=None):
+    if not zone:
+        zone = get_divio_zone()
+    if re.match("^https?://", zone):
+        endpoint = zone
+    else:
+        endpoint = ENDPOINT.format(zone=zone)
+
+    if zone != DEFAULT_ZONE:
+        click.secho("Using zone: {}\n".format(endpoint), fg="green")
     return endpoint
 
 
@@ -160,6 +171,27 @@ class CloudClient(object):
                 ),
                 fg="yellow",
             )
+            sys.exit(1)
+
+    def get_environment(self, website_id, stage):
+        project_data = self.get_project(website_id)
+        try:
+            status = project_data["{}_status".format(stage)]
+        except KeyError:
+            click.secho(
+                "Environment with the name '{}' does not exist.".format(stage),
+                fg="red",
+            )
+            sys.exit(1)
+        try:
+            response = api_requests.EnvironmentRequest(
+                self.session,
+                url_kwargs={"environment_uuid": status["uuid"]},
+            )()
+            return response
+
+        except (KeyError, json.decoder.JSONDecodeError):
+            click.secho("Error establishing connection.", fg="red")
             sys.exit(1)
 
     def show_log(self, website_id, stage, tail=False, utc=True):
